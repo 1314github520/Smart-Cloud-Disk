@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/windowBackground"
+    android:fitsSystemWindows="true">
+
+    <!-- 1. 文件列表 -->
+    <LinearLayout
+        android:id="@+id/layout_files_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_navigation"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#EEEEEE">
+
+            <!-- 搜索框 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:gravity="center_vertical">
+                <EditText
+                    android:id="@+id/et_search"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:hint="搜索我的文件..."
+                    android:background="@android:drawable/edit_text"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="14sp"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text" />
+                <ImageButton
+                    android:id="@+id/btn_search"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_menu_search"
+                    android:background="?android:attr/selectableItemBackgroundBorderless" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:gravity="center_vertical">
+                <ImageButton
+                    android:id="@+id/btn_back_dir"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_menu_revert"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/tv_current_path"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="全部文件"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_files"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingTop="4dp"
+                android:clipToPadding="false" />
+            <TextView
+                android:id="@+id/tv_empty_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="文件夹为空"
+                android:visibility="gone"
+                android:textColor="#999999" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- 2. “我的”界面 -->
+    <LinearLayout
+        android:id="@+id/layout_me"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_navigation"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="40dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@android:drawable/ic_menu_myplaces"
+            app:tint="@color/design_default_color_primary" />
+
+        <TextView
+            android:id="@+id/tv_username_display"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="当前用户: "
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tv_storage_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="正在计算容量..."
+                android:textSize="14sp" />
+            <ProgressBar
+                android:id="@+id/storage_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="8dp"
+                android:layout_marginTop="8dp"
+                android:max="100" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:text="总容量: 1 TB"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btn_logout"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:text="退出登录"
+            android:textColor="#F44336"
+            app:strokeColor="#F44336" />
+
+        <TextView
+            android:id="@+id/tv_cancel_account"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="注销并删除所有数据"
+            android:textColor="#999999"
+            android:textSize="12sp"
+            android:padding="8dp" />
+
+        <!-- 正规化信息展示区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="版本号: 1.0.2 (Build 20260502)"
+                android:textColor="#BBBBBB"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="开发者: ZWZ"
+                android:textColor="#BBBBBB"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Copyright © 2026 ZWZ. All Rights Reserved."
+                android:textColor="#CCCCCC"
+                android:textSize="10sp"
+                android:textStyle="italic" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 2.5 传输界面 -->
+    <LinearLayout
+        android:id="@+id/layout_trans"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_navigation"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_trans_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="传输列表"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- 分类入口容器 -->
+        <LinearLayout
+            android:id="@+id/layout_trans_categories"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_upload"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/stat_sys_upload" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="16dp" android:text="上传任务" android:textSize="16sp" />
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_media_next" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_download"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/stat_sys_download" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="16dp" android:text="下载任务" android:textSize="16sp" />
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_media_next" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- 任务列表容器 (默认隐藏) -->
+        <LinearLayout
+            android:id="@+id/layout_trans_list_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/btn_trans_back"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="返回列表"
+                android:drawableStart="@android:drawable/ic_menu_revert" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_trans_tasks"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="16dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 3. 底部导航 (elevation设为8dp) -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_alignParentBottom="true"
+        android:background="?android:attr/windowBackground"
+        android:elevation="8dp"
+        app:menu="@menu/bottom_nav_menu" />
+
+    <!-- 4. 唤回按钮 -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_show_player"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/bottom_navigation"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_media_play"
+        android:visibility="gone"
+        android:onClick="showPlayer"
+        app:fabSize="normal" />
+
+    <!-- 4.5 下载按钮 (多选时显示) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_download"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/fab_show_player"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/stat_sys_download"
+        android:visibility="gone"
+        android:onClick="onDownloadClick"
+        app:fabSize="normal"
+        app:backgroundTint="@color/design_default_color_primary"
+        app:tint="@android:color/white" />
+
+    <!-- 4.55 移动按钮 (多选时显示) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_move"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/fab_download"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_menu_directions"
+        android:visibility="gone"
+        android:onClick="onMoveSelectedClick"
+        app:fabSize="normal"
+        app:backgroundTint="#9C27B0"
+        app:tint="@android:color/white" />
+
+    <!-- 4.58 删除按钮 (多选时显示) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_delete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/fab_move"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_menu_delete"
+        android:visibility="gone"
+        android:onClick="onDeleteSelectedClick"
+        app:fabSize="normal"
+        app:backgroundTint="#E91E63"
+        app:tint="@android:color/white" />
+
+    <!-- 4.6 上传按钮 -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_upload"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/fab_delete"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/stat_sys_upload"
+        android:onClick="onUploadClick"
+        app:fabSize="normal"
+        app:backgroundTint="#4CAF50"
+        app:tint="@android:color/white" />
+
+    <!-- 4.7 新建文件夹按钮 -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_new_folder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/fab_upload"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_input_add"
+        android:onClick="onNewFolderClick"
+        app:fabSize="normal"
+        app:backgroundTint="#FF9800"
+        app:tint="@android:color/white" />
+
+    <!-- 5. 全屏播放器 (必须在最后，elevation设为12dp，并开启点击拦截) -->
+    <RelativeLayout
+        android:id="@+id/player_full_screen"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#F5F5F5"
+        android:elevation="12dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/btn_close_player"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:onClick="onPlayerControl"
+            android:padding="20dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:elevation="13dp" />
+
+        <TextView
+            android:id="@+id/tv_audio_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/btn_close_player"
+            android:layout_toStartOf="@+id/btn_audio_menu"
+            android:layout_marginTop="22dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="正在播放"
+            android:textColor="#333333"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:scrollHorizontally="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:visibility="gone"
+            android:elevation="13dp" />
+
+        <ImageButton
+            android:id="@+id/btn_audio_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentTop="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="20dp"
+            android:src="@android:drawable/ic_menu_more"
+            android:elevation="13dp"
+            android:visibility="gone" />
+
+        <!-- 图片预览 -->
+        <com.github.chrisbanes.photoview.PhotoView
+            android:id="@+id/iv_full_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+
+        <!-- 升级为 ExoPlayer (Media3) -->
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/video_player_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true"
+            android:background="#000000"
+            app:resize_mode="fit"
+            app:use_controller="true"
+            app:show_buffering="always"
+            android:visibility="gone" />
+
+        <!-- 侧边播放列表 (保持独立，叠加在播放器上) -->
+        <RelativeLayout
+            android:id="@+id/layout_video_playlist"
+            android:layout_width="250dp"
+            android:layout_height="match_parent"
+            android:layout_alignParentEnd="true"
+            android:background="#CC000000"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            android:elevation="20dp">
+
+                <TextView
+                    android:id="@+id/tv_playlist_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="播放列表"
+                    android:textColor="@android:color/white"
+                    android:padding="16dp"
+                    android:textStyle="bold" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_video_playlist"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/tv_playlist_title" />
+            </RelativeLayout>
+
+        <!-- 音频碟片动画 -->
+        <ImageView
+            android:id="@+id/img_disc"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:layout_centerInParent="true"
+            android:src="@drawable/music_disc"
+            android:elevation="15dp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/layout_audio_controls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:orientation="vertical"
+            android:padding="40dp"
+            android:visibility="gone">
+            <SeekBar
+                android:id="@+id/player_seekbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/tv_player_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:text="00:00 / 00:00"
+                android:textColor="#999999"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginTop="30dp"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/btn_prev"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:src="@android:drawable/ic_media_previous"
+                    android:background="@drawable/btn_circle_bg"
+                    android:layout_marginEnd="32dp"
+                    app:tint="#333333" />
+
+                <ImageButton
+                    android:id="@+id/btn_play_pause"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@android:drawable/ic_media_play"
+                    android:onClick="onPlayerControl"
+                    android:background="@drawable/btn_circle_bg"
+                    android:elevation="2dp"
+                    app:tint="#2196F3" />
+
+                <ImageButton
+                    android:id="@+id/btn_next"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:src="@android:drawable/ic_media_next"
+                    android:background="@drawable/btn_circle_bg"
+                    android:layout_marginStart="32dp"
+                    app:tint="#333333" />
+
+            </LinearLayout>
+        </LinearLayout>
+    </RelativeLayout>
+</RelativeLayout>

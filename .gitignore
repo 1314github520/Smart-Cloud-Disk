@@ -11,10 +11,9 @@ local.properties
 app/build/
 app/release/
 
-# 【核心】排除敏感配置文件
+# 【核心】排除敏感文件
 app/src/main/java/com/example/clouddisk/Config.java
-
-# 签名文件
+my_key
 *.jks
 *.keystore
 

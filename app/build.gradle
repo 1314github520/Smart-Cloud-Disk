@@ -1,0 +1,92 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace 'com.example.clouddisk'
+    compileSdk {
+        version = release(36) {
+            minorApiLevel = 1
+        }
+    }
+
+    defaultConfig {
+        applicationId "com.example.clouddisk"
+        minSdk 28
+        targetSdk 36
+        versionCode 3
+        versionName "1.0.3"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // 读取 local.properties
+        def properties = new Properties()
+        def propertiesFile = project.rootProject.file('local.properties')
+        if (propertiesFile.exists()) {
+            properties.load(propertiesFile.newDataInputStream())
+        }
+
+        buildConfigField "String", "WEBDAV_USER", "\"${properties.getProperty('WEBDAV_USER') ?: 'admin'}\""
+        buildConfigField "String", "WEBDAV_PASS", "\"${properties.getProperty('WEBDAV_PASS') ?: ''}\""
+        buildConfigField "String", "CD2_TOKEN", "\"${properties.getProperty('CD2_TOKEN') ?: ''}\""
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true // 开启混淆
+            shrinkResources true // 移除无用的资源文件
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+}
+
+// 自动重命名生成的 APK 文件 (适配 AGP 9.2+)
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.outputs.each { output ->
+            def date = new Date().format('yyyyMMdd')
+            def versionName = output.versionName.get()
+            output.outputFileName.set("CloudDisk_v${versionName}_${date}_${variant.name}.apk")
+        }
+    }
+}
+
+dependencies {
+    implementation libs.activity.ktx
+    implementation libs.appcompat
+    implementation libs.constraintlayout
+    implementation libs.material
+    implementation libs.navigation.fragment
+    implementation libs.navigation.ui
+    testImplementation libs.junit
+    androidTestImplementation libs.espresso.core
+    androidTestImplementation libs.ext.junit
+}
+dependencies {
+    def room_version = "2.6.1"
+    implementation "androidx.room:room-runtime:$room_version"
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+
+    // 如果你还没加 OkHttp，顺便也加上，后面连 CD2 要用
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    implementation 'com.github.chrisbanes:PhotoView:2.3.0'
+    
+    // Media3 ExoPlayer
+    implementation "androidx.media3:media3-exoplayer:1.2.1"
+    implementation "androidx.media3:media3-ui:1.2.1"
+    implementation "androidx.media3:media3-datasource-okhttp:1.2.1"
+
+    // Splash Screen
+    implementation "androidx.core:core-splashscreen:1.0.1"
+}

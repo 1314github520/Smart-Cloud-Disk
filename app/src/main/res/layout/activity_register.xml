@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="32dp"
+    android:gravity="center">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="新用户注册"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp"/>
+
+    <EditText
+        android:id="@+id/re_username"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:hint="设置用户名"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/re_password"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:hint="设置密码"
+        android:inputType="textPassword"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/re_confirm_password"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:hint="确认密码"
+        android:inputType="textPassword"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/re_invite_code"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:hint="请输入8位邀请码"
+        android:inputType="textCapCharacters"
+        android:maxLength="8"
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/btn_do_register"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="完成注册并登录"
+        android:backgroundTint="#4CAF50"/>
+</LinearLayout>
