@@ -44,7 +44,14 @@
         android:hint="请输入8位邀请码"
         android:inputType="textCapCharacters"
         android:maxLength="8"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="16dp"/>
+
+    <CheckBox
+        android:id="@+id/cb_use_2fa"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="开启2FA安全验证 (推荐)"
+        android:layout_marginBottom="16dp"/>
 
     <Button
         android:id="@+id/btn_do_register"

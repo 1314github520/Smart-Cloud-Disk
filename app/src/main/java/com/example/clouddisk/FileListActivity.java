@@ -144,11 +144,15 @@ public class FileListActivity extends AppCompatActivity {
         btnSearch = findViewById(R.id.btn_search);
         btnPlayPause = findViewById(R.id.btn_play_pause);
         TextView tvUsernameDisplay = findViewById(R.id.tv_username_display);
+        TextView tvVersionDisplay = findViewById(R.id.tv_app_version);
         
         // 显示当前登录用户名
         SharedPreferences sp = getSharedPreferences("user_prefs", MODE_PRIVATE);
         String savedUsername = sp.getString("username", "admin");
         tvUsernameDisplay.setText("当前用户: " + savedUsername);
+
+        // 动态显示版本号
+        tvVersionDisplay.setText("版本号: " + BuildConfig.VERSION_NAME);
         
         // 方案核心：每个账号自动进入自己的专属文件夹，但底层共用 admin
         currentPath = savedUsername + "/";
@@ -193,6 +197,9 @@ public class FileListActivity extends AppCompatActivity {
             startActivity(new Intent(this, MainActivity.class));
             finish();
         });
+
+        // 修改密码
+        findViewById(R.id.btn_change_password).setOnClickListener(v -> showChangePasswordDialog());
 
         // 注销账号逻辑
         findViewById(R.id.tv_cancel_account).setOnClickListener(v -> {
@@ -1010,6 +1017,105 @@ public class FileListActivity extends AppCompatActivity {
                 }
             } catch (Exception e) { e.printStackTrace(); }
         }).start();
+    }
+
+    private void showChangePasswordDialog() {
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_change_password, null);
+        EditText etOld = view.findViewById(R.id.et_old_password);
+        EditText etNew = view.findViewById(R.id.et_new_password);
+        EditText etConfirm = view.findViewById(R.id.et_confirm_new_password);
+
+        new AlertDialog.Builder(this)
+                .setTitle("修改登录密码")
+                .setView(view)
+                .setPositiveButton("立即修改", (dialog, which) -> {
+                    String oldP = etOld.getText().toString().trim();
+                    String newP = etNew.getText().toString().trim();
+                    String confirmP = etConfirm.getText().toString().trim();
+
+                    if (oldP.isEmpty() || newP.isEmpty()) {
+                        Toast.makeText(this, "密码不能为空", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (!newP.equals(confirmP)) {
+                        Toast.makeText(this, "两次新密码输入不一致", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    performChangePassword(oldP, newP, null);
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void performChangePassword(String oldP, String newP, String code) {
+        SharedPreferences sp = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        String username = sp.getString("username", "");
+
+        new Thread(() -> {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("username", username);
+                json.put("oldPassword", oldP);
+                json.put("newPassword", newP);
+                if (code != null) json.put("code", code);
+
+                RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
+                Request request = new Request.Builder()
+                        .url(Config.getBackendUrl() + "/change_password")
+                        .post(body)
+                        .build();
+
+                OkHttpClient client = new OkHttpClient();
+                try (Response response = client.newCall(request).execute()) {
+                    String respStr = response.body().string();
+                    if (response.isSuccessful()) {
+                        if ("NEED_2FA".equals(respStr)) {
+                            runOnUiThread(() -> show2FADialogForPassword(oldP, newP));
+                        } else {
+                            runOnUiThread(() -> {
+                                Toast.makeText(this, "密码修改成功！请重新登录", Toast.LENGTH_LONG).show();
+                                sp.edit().clear().apply();
+                                startActivity(new Intent(this, MainActivity.class));
+                                finish();
+                            });
+                        }
+                    } else {
+                        runOnUiThread(() -> {
+                            String error = "FAIL_2FA".equals(respStr) ? "验证码错误" : ("修改失败: " + respStr);
+                            Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this, "请求失败", Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
+
+    private void show2FADialogForPassword(String oldP, String newP) {
+        EditText etCode = new EditText(this);
+        etCode.setHint("请输入 6 位安全验证码");
+        etCode.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        etCode.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(6)});
+
+        int padding = (int) (24 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        container.setPadding(padding, padding / 2, padding, 0);
+        container.addView(etCode);
+
+        new AlertDialog.Builder(this)
+                .setTitle("安全验证")
+                .setView(container)
+                .setPositiveButton("验证并修改", (dialog, which) -> {
+                    String code = etCode.getText().toString();
+                    if (code.length() == 6) {
+                        performChangePassword(oldP, newP, code);
+                    } else {
+                        Toast.makeText(this, "请输入6位验证码", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private void cancelAccount(String username) {

@@ -145,11 +145,20 @@
         </LinearLayout>
 
         <Button
+            android:id="@+id/btn_change_password"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:text="修改登录密码"
+            app:strokeColor="@color/design_default_color_primary" />
+
+        <Button
             android:id="@+id/btn_logout"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="12dp"
             android:text="退出登录"
             android:textColor="#F44336"
             app:strokeColor="#F44336" />
@@ -173,9 +182,10 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/tv_app_version"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="版本号: 1.0.2 (Build 20260502)"
+                android:text="版本号: --"
                 android:textColor="#BBBBBB"
                 android:textSize="11sp" />
 

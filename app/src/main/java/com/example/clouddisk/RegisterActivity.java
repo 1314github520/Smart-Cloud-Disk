@@ -24,6 +24,7 @@ public class RegisterActivity extends AppCompatActivity {
         EditText etPass = findViewById(R.id.re_password);
         EditText etConfirm = findViewById(R.id.re_confirm_password);
         EditText etInvite = findViewById(R.id.re_invite_code);
+        android.widget.CheckBox cb2fa = findViewById(R.id.cb_use_2fa);
         Button btnReg = findViewById(R.id.btn_do_register);
 
         btnReg.setOnClickListener(v -> {
@@ -31,6 +32,7 @@ public class RegisterActivity extends AppCompatActivity {
             String pass = etPass.getText().toString().trim();
             String confirm = etConfirm.getText().toString().trim();
             String invite = etInvite.getText().toString().trim();
+            boolean use2FA = cb2fa.isChecked();
 
             if (name.isEmpty() || pass.isEmpty() || invite.isEmpty()) {
                 Toast.makeText(this, "用户名、密码或邀请码不能为空", Toast.LENGTH_SHORT).show();
@@ -49,6 +51,7 @@ public class RegisterActivity extends AppCompatActivity {
                     json.put("username", name);
                     json.put("password", pass);
                     json.put("inviteCode", invite);
+                    json.put("use2FA", use2FA);
 
                     RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
                     Request request = new Request.Builder()
@@ -57,14 +60,26 @@ public class RegisterActivity extends AppCompatActivity {
                             .build();
 
                     try (Response response = client.newCall(request).execute()) {
+                        String respStr = response.body().string();
                         if (response.isSuccessful()) {
-                            runOnUiThread(() -> {
-                                Toast.makeText(this, "注册成功，云端已同步！", Toast.LENGTH_SHORT).show();
-                                finish();
-                            });
+                            if (use2FA) {
+                                JSONObject respJson = new JSONObject(respStr);
+                                org.json.JSONArray secret = respJson.getJSONArray("secret");
+                                
+                                JSONObject qrJson = new JSONObject();
+                                qrJson.put("issuer", "CloudDisk");
+                                qrJson.put("account", name);
+                                qrJson.put("secret", secret);
+                                
+                                runOnUiThread(() -> show2FAQRCode(name, qrJson.toString()));
+                            } else {
+                                runOnUiThread(() -> {
+                                    Toast.makeText(this, "注册成功，云端已同步！", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                });
+                            }
                         } else {
-                            String msg = response.body().string();
-                            runOnUiThread(() -> Toast.makeText(this, "注册失败: " + msg, Toast.LENGTH_SHORT).show());
+                            runOnUiThread(() -> Toast.makeText(this, "注册失败: " + respStr, Toast.LENGTH_SHORT).show());
                         }
                     }
                 } catch (Exception e) {
@@ -72,6 +87,23 @@ public class RegisterActivity extends AppCompatActivity {
                 }
             }).start();
         });
+    }
+
+    private void show2FAQRCode(String username, String secretJson) {
+        String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=" + android.net.Uri.encode(secretJson);
+
+        android.widget.ImageView imageView = new android.widget.ImageView(this);
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        imageView.setPadding(padding, padding, padding, padding);
+        com.bumptech.glide.Glide.with(this).load(qrUrl).into(imageView);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("开启安全盾")
+                .setMessage("账号: " + username + "\n请使用 CDAuthy 扫描二维码绑定。")
+                .setView(imageView)
+                .setCancelable(false)
+                .setPositiveButton("我已完成扫码", (dialog, which) -> finish())
+                .show();
     }
 
     private boolean createFolderForUser(String username) {

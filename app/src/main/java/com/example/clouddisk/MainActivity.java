@@ -50,51 +50,11 @@ public class MainActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(v -> {
             String user = etUsername.getText().toString();
             String pass = etPassword.getText().toString();
-            if (user.isEmpty()) {
-                Toast.makeText(this, "用户名不能为空", Toast.LENGTH_SHORT).show();
+            if (user.isEmpty() || pass.isEmpty()) {
+                Toast.makeText(this, "用户名或密码不能为空", Toast.LENGTH_SHORT).show();
                 return;
             }
-
-            // 2. 再判断密码是否为空
-            if (pass.isEmpty()) {
-                Toast.makeText(this, "密码不能为空", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            new Thread(() -> {
-                try {
-                    OkHttpClient client = new OkHttpClient();
-                    JSONObject json = new JSONObject();
-                    json.put("username", user);
-                    json.put("password", pass);
-
-                    RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
-                    Request request = new Request.Builder()
-                            .url(Config.getBackendUrl() + "/login")
-                            .post(body)
-                            .build();
-
-                    try (Response response = client.newCall(request).execute()) {
-                        if (response.isSuccessful()) {
-                            runOnUiThread(() -> {
-                                Toast.makeText(this, "登录成功！", Toast.LENGTH_SHORT).show();
-                                getSharedPreferences("user_prefs", MODE_PRIVATE).edit()
-                                        .putBoolean("is_logged_in", true)
-                                        .putString("username", user)
-                                        .putString("password", pass)
-                                        .apply();
-                                startActivity(new Intent(this, FileListActivity.class));
-                                finish();
-                            });
-                        } else {
-                            runOnUiThread(() -> Toast.makeText(this, "账号或密码错误", Toast.LENGTH_SHORT).show());
-                        }
-                    }
-                } catch (Exception e) {
-                    runOnUiThread(() -> Toast.makeText(this, "连不上服务器", Toast.LENGTH_SHORT).show());
-                }
-            }).start();
-
-
+            performLogin(user, pass, null);
         });
         // 在 MainActivity 的 onCreate 里面添加：
         TextView tvRegister = findViewById(R.id.tv_register_link);
@@ -105,6 +65,78 @@ public class MainActivity extends AppCompatActivity {
 
         // 检查更新
         checkUpdate();
+    }
+
+    private void performLogin(String user, String pass, String code) {
+        new Thread(() -> {
+            try {
+                OkHttpClient client = new OkHttpClient();
+                JSONObject json = new JSONObject();
+                json.put("username", user);
+                json.put("password", pass);
+                if (code != null) json.put("code", code);
+
+                RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
+                Request request = new Request.Builder()
+                        .url(Config.getBackendUrl() + "/login")
+                        .post(body)
+                        .build();
+
+                try (Response response = client.newCall(request).execute()) {
+                    String respStr = response.body().string();
+                    if (response.isSuccessful()) {
+                        if (respStr.equals("NEED_2FA")) {
+                            runOnUiThread(() -> show2FADialog(user, pass));
+                        } else {
+                            runOnUiThread(() -> {
+                                Toast.makeText(this, "登录成功！", Toast.LENGTH_SHORT).show();
+                                getSharedPreferences("user_prefs", MODE_PRIVATE).edit()
+                                        .putBoolean("is_logged_in", true)
+                                        .putString("username", user)
+                                        .putString("password", pass)
+                                        .apply();
+                                startActivity(new Intent(this, FileListActivity.class));
+                                finish();
+                            });
+                        }
+                    } else {
+                        runOnUiThread(() -> {
+                            String error = respStr.equals("FAIL_2FA") ? "验证码错误" : "账号或密码错误";
+                            Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this, "连不上服务器", Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
+
+    private void show2FADialog(String user, String pass) {
+        EditText etCode = new EditText(this);
+        etCode.setHint("6 位数字验证码");
+        etCode.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        etCode.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(6)});
+
+        int padding = (int) (24 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        container.setPadding(padding, padding / 2, padding, 0);
+        container.addView(etCode);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("安全验证")
+                .setMessage("请输入安全盾上的 6 位验证码")
+                .setView(container)
+                .setPositiveButton("验证", (dialog, which) -> {
+                    String code = etCode.getText().toString();
+                    if (code.length() == 6) {
+                        performLogin(user, pass, code);
+                    } else {
+                        Toast.makeText(this, "请输入6位验证码", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("返回", null)
+                .show();
     }
 
     private void checkUpdate() {
