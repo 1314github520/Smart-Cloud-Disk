@@ -58,5 +58,6 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:text="完成注册并登录"
-        android:backgroundTint="#4CAF50"/>
+        android:backgroundTint="@color/secondary"
+        android:textColor="@color/white"/>
 </LinearLayout>

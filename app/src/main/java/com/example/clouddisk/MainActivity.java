@@ -62,9 +62,6 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, RegisterActivity.class);
             startActivity(intent);
         });
-
-        // 检查更新
-        checkUpdate();
     }
 
     private void performLogin(String user, String pass, String code) {
@@ -139,50 +136,4 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void checkUpdate() {
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url(Config.UPDATE_URL)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                // 检查更新失败，通常不打扰用户
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (response.isSuccessful() && response.body() != null) {
-                    try {
-                        String jsonStr = response.body().string();
-                        JSONObject json = new JSONObject(jsonStr);
-                        int remoteVersionCode = json.getInt("versionCode");
-                        String versionName = json.getString("versionName");
-                        String updateMessage = json.getString("updateMessage");
-                        String downloadUrl = json.getString("downloadUrl");
-
-                        if (remoteVersionCode > com.example.clouddisk.BuildConfig.VERSION_CODE) {
-                            runOnUiThread(() -> showUpdateDialog(versionName, updateMessage, downloadUrl));
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-    }
-
-    private void showUpdateDialog(String versionName, String message, String url) {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("发现新版本: " + versionName)
-                .setMessage(message)
-                .setCancelable(false)
-                .setPositiveButton("立即下载", (dialog, which) -> {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                    startActivity(intent);
-                })
-                .setNegativeButton("稍后再说", null)
-                .show();
-    }
 }

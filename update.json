@@ -1,6 +1,6 @@
 {
-  "versionCode": 4,
-  "versionName": "1.0.4",
-  "updateMessage": "1. 新增 2FA 安全盾支持（需配合 CDAuthy 使用）\n2. 新增修改登录密码功能\n3. 优化了登录校验安全性\n4. 修复了已知问题",
-  "downloadUrl": "https://github.com/SmartZWZ/Smart-Cloud-Disk/releases/download/V1.0.4/CloudDisk_v1.0.4_release.apk"
+  "versionCode": 5,
+  "versionName": "1.0.5",
+  "updateMessage": "1. 全面支持深色模式 (Dark Mode)，保护视力\n2. 优化版本更新逻辑，支持通过代理加速下载\n3. 提升应用启动速度与列表加载稳定性\n4. 修复了若干已知性能问题",
+  "downloadUrl": "https://github.com/SmartZWZ/Smart-Cloud-Disk/releases/download/V1.0.5/CloudDisk_v1.0.5_release.apk"
 }

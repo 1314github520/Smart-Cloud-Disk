@@ -112,6 +112,9 @@ public class FileListActivity extends AppCompatActivity {
     private static final String CD2_TOKEN = Config.CD2_TOKEN;
     private final long TOTAL_CAPACITY = 1024L * 1024 * 1024 * 1024; // 1TB
 
+    private com.google.android.material.switchmaterial.SwitchMaterial switch2FA;
+    private android.widget.Button btnViewQR;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -200,6 +203,33 @@ public class FileListActivity extends AppCompatActivity {
 
         // 修改密码
         findViewById(R.id.btn_change_password).setOnClickListener(v -> showChangePasswordDialog());
+
+        // 2FA 管理
+        switch2FA = findViewById(R.id.switch_2fa);
+        btnViewQR = findViewById(R.id.btn_view_qr);
+        
+        switch2FA.setOnClickListener(v -> {
+            boolean isChecked = switch2FA.isChecked();
+            if (!isChecked) {
+                // 如果是尝试关闭，弹出确认框
+                new AlertDialog.Builder(this)
+                        .setTitle("确认关闭安全盾？")
+                        .setMessage("关闭后，登录将不再需要动态验证码，账号风险将增加。")
+                        .setPositiveButton("确认关闭", (dialog, which) -> toggle2FA(false))
+                        .setNegativeButton("取消", (dialog, which) -> switch2FA.setChecked(true))
+                        .show();
+            } else {
+                toggle2FA(true);
+            }
+        });
+
+        btnViewQR.setOnClickListener(v -> toggle2FA(true));
+
+        // 检查更新
+        findViewById(R.id.btn_check_update_me).setOnClickListener(v -> checkUpdateMe());
+
+        // 关于我们
+        findViewById(R.id.btn_about_us).setOnClickListener(v -> showAboutDialog());
 
         // 注销账号逻辑
         findViewById(R.id.tv_cancel_account).setOnClickListener(v -> {
@@ -374,6 +404,38 @@ public class FileListActivity extends AppCompatActivity {
         
         // 校验云端账号是否存在
         validateAccount(savedUsername, sp.getString("password", ""));
+        
+        // 获取初始 2FA 状态
+        toggle2FAStatusOnly(savedUsername, sp.getString("password", ""));
+    }
+
+    private void toggle2FAStatusOnly(String user, String pass) {
+        new Thread(() -> {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("username", user);
+                json.put("password", pass);
+                json.put("action", "status");
+
+                RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
+                Request request = new Request.Builder()
+                        .url(Config.getBackendUrl() + "/manage_2fa")
+                        .post(body)
+                        .build();
+
+                OkHttpClient client = new OkHttpClient();
+                try (Response response = client.newCall(request).execute()) {
+                    if (response.isSuccessful()) {
+                        JSONObject respJson = new JSONObject(response.body().string());
+                        boolean isEnabled = respJson.optBoolean("twoFactorEnabled", false);
+                        runOnUiThread(() -> {
+                            switch2FA.setChecked(isEnabled);
+                            btnViewQR.setVisibility(isEnabled ? View.VISIBLE : View.GONE);
+                        });
+                    }
+                }
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private void validateAccount(String username, String password) {
@@ -1115,6 +1177,193 @@ public class FileListActivity extends AppCompatActivity {
                     }
                 })
                 .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void toggle2FA(boolean enable) {
+        SharedPreferences sp = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        String username = sp.getString("username", "");
+        String password = sp.getString("password", "");
+
+        new Thread(() -> {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("username", username);
+                json.put("password", password);
+                json.put("action", enable ? "enable" : "disable");
+
+                RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
+                Request request = new Request.Builder()
+                        .url(Config.getBackendUrl() + "/manage_2fa")
+                        .post(body)
+                        .build();
+
+                OkHttpClient client = new OkHttpClient();
+                try (Response response = client.newCall(request).execute()) {
+                    if (response.isSuccessful()) {
+                        String respStr = response.body().string();
+                        JSONObject respJson = new JSONObject(respStr);
+                        boolean isEnabled = respJson.optBoolean("twoFactorEnabled", false);
+                        org.json.JSONArray secret = respJson.optJSONArray("twoFactorSecret");
+
+                        runOnUiThread(() -> {
+                            switch2FA.setChecked(isEnabled);
+                            btnViewQR.setVisibility(isEnabled ? View.VISIBLE : View.GONE);
+                            if (enable && isEnabled && secret != null) {
+                                try {
+                                    JSONObject qrJson = new JSONObject();
+                                    qrJson.put("issuer", "CloudDisk");
+                                    qrJson.put("account", username);
+                                    qrJson.put("secret", secret);
+                                    
+                                    show2FAQRCodeDialog(username, qrJson.toString());
+                                } catch (Exception ignored) {}
+                            } else if (!enable && !isEnabled) {
+                                Toast.makeText(this, "安全盾已关闭", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this, "2FA操作失败", Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
+
+    private void downloadCDAuthy() {
+        String url = "https://gh-proxy.org/https://github.com/SmartZWZ/CDAuthy/releases/download/V1.0/CDAuthy-V1.0.apk";
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+        request.setTitle("下载 CDAuthy 验证器");
+        request.setDescription("配套 CloudDisk 安全盾使用");
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        request.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, "CDAuthy-V1.0.apk");
+
+        DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        if (manager != null) {
+            manager.enqueue(request);
+            Toast.makeText(this, "正在为您下载配套验证器 CDAuthy...", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void show2FAQRCodeDialog(String username, String secretJson) {
+        String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=" + android.net.Uri.encode(secretJson);
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+
+        android.widget.ImageView imageView = new android.widget.ImageView(this);
+        int size = (int) (250 * getResources().getDisplayMetrics().density);
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(size, size);
+        imageView.setLayoutParams(lp);
+
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        imageView.setPadding(padding, padding, padding, padding);
+
+        Glide.with(this)
+                .load(qrUrl)
+                .placeholder(android.R.drawable.progress_indeterminate_horizontal)
+                .error(android.R.drawable.stat_notify_error)
+                .into(imageView);
+        
+        layout.addView(imageView);
+
+        // 添加下载配套验证器按钮
+        com.google.android.material.button.MaterialButton btnDownload = new com.google.android.material.button.MaterialButton(this);
+        btnDownload.setText("下载配套验证器 (CDAuthy)");
+        android.widget.LinearLayout.LayoutParams btnLp = new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+        btnLp.setMargins(0, 0, 0, padding);
+        btnDownload.setLayoutParams(btnLp);
+        btnDownload.setOnClickListener(v -> downloadCDAuthy());
+        layout.addView(btnDownload);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("2FA 安全盾绑定")
+                .setMessage("账号: " + username + "\n\n⚠️ 重要提示：\n请使用 CDAuthy 扫描二维码。若未安装，请点击下方按钮下载。建议【截图保存】此二维码以防丢失。")
+                .setView(layout)
+                .setPositiveButton("我已安全保存", null)
+                .show();
+    }
+
+    private void checkUpdateMe() {
+        Toast.makeText(this, "正在检查更新...", Toast.LENGTH_SHORT).show();
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder().url(Config.UPDATE_URL).build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull java.io.IOException e) {
+                runOnUiThread(() -> Toast.makeText(FileListActivity.this, "检查失败，请检查网络", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws java.io.IOException {
+                if (response.isSuccessful() && response.body() != null) {
+                    try {
+                        String jsonStr = response.body().string();
+                        JSONObject json = new JSONObject(jsonStr);
+                        int remoteVersionCode = json.getInt("versionCode");
+                        String versionName = json.getString("versionName");
+                        String updateMessage = json.getString("updateMessage");
+                        String downloadUrl = json.getString("downloadUrl");
+
+                        if (remoteVersionCode > BuildConfig.VERSION_CODE) {
+                            runOnUiThread(() -> showUpdateDialog(versionName, updateMessage, downloadUrl));
+                        } else {
+                            runOnUiThread(() -> Toast.makeText(FileListActivity.this, "当前已是最新版本", Toast.LENGTH_SHORT).show());
+                        }
+                    } catch (Exception e) {
+                        runOnUiThread(() -> Toast.makeText(FileListActivity.this, "解析失败", Toast.LENGTH_SHORT).show());
+                    }
+                }
+            }
+        });
+    }
+
+    private void showUpdateDialog(String versionName, String message, String url) {
+        boolean[] useProxy = {true}; // 默认开启加速代理
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("发现新版本: " + versionName)
+                .setMessage(message)
+                .setCancelable(false)
+                .setMultiChoiceItems(new CharSequence[]{"使用 GitHub 加速下载 (推荐)"}, new boolean[]{true}, (dialog, which, isChecked) -> {
+                    useProxy[0] = isChecked;
+                })
+                .setPositiveButton("立即下载", (dialog, which) -> {
+                    String finalUrl = useProxy[0] ? (Config.GITHUB_PROXY + url) : url;
+                    Toast.makeText(this, "开始下载新版本...", Toast.LENGTH_SHORT).show();
+                    downloadNewVersion(finalUrl, versionName);
+                })
+                .setNegativeButton("稍后再说", null)
+                .show();
+    }
+
+    private void downloadNewVersion(String url, String versionName) {
+        android.app.DownloadManager.Request request = new android.app.DownloadManager.Request(Uri.parse(url));
+        request.setTitle("CloudDisk 更新 - " + versionName);
+        request.setDescription("正在下载新版本安装包...");
+        request.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        String fileName = "CloudDisk_v" + versionName + ".apk";
+        request.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, fileName);
+
+        android.app.DownloadManager manager = (android.app.DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+        if (manager != null) {
+            manager.enqueue(request);
+        }
+    }
+
+    private void showAboutDialog() {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("关于 CloudDisk")
+                .setMessage("CloudDisk 一站式私有云存储解决方案\n\n" +
+                        "当前版本: " + BuildConfig.VERSION_NAME + "\n" +
+                        "开发者: ZWZ\n" +
+                        "联系我们: support@zwz.com\n\n" +
+                        "Copyright © 2026 ZWZ Studio.\nAll Rights Reserved.")
+                .setPositiveButton("确定", null)
                 .show();
     }
 

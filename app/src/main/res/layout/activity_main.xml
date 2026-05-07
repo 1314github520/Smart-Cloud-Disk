@@ -12,7 +12,7 @@
         android:text="Cloud"
         android:textSize="28sp"
         android:textStyle="bold"
-        android:textColor="#2196F3"
+        android:textColor="@color/primary"
         android:layout_marginBottom="40dp"/>
 
     <EditText
@@ -20,7 +20,6 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:hint="用户名"
-        android:background="@android:drawable/editbox_background"
         android:paddingLeft="10dp"
         android:layout_marginBottom="16dp"/>
 
@@ -30,7 +29,6 @@
         android:layout_height="50dp"
         android:hint="密码"
         android:inputType="textPassword"
-        android:background="@android:drawable/editbox_background"
         android:paddingLeft="10dp"
         android:layout_marginBottom="24dp"/>
 
@@ -39,8 +37,8 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:text="登录"
-        android:backgroundTint="#2196F3"
-        android:textColor="#FFFFFF"/>
+        android:backgroundTint="@color/primary"
+        android:textColor="@color/white"/>
 
     <TextView
         android:id="@+id/tv_register_link"
@@ -48,7 +46,7 @@
         android:layout_height="wrap_content"
         android:text="还没有账号？立即注册"
         android:layout_marginTop="16dp"
-        android:textColor="#666666"
+        android:textColor="@color/text_secondary"
         android:textSize="14sp"/>
 
 </LinearLayout>
