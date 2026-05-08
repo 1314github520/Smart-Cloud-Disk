@@ -3,8 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/windowBackground"
     android:fitsSystemWindows="true">
+
+    <!-- 0. 全局背景图 -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/bg_common"
+        android:scaleType="centerCrop"
+        android:alpha="0.2"
+        android:contentDescription="背景" />
 
     <!-- 1. 文件列表 -->
     <LinearLayout
@@ -12,13 +20,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/bottom_navigation"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:background="@android:color/transparent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@color/surface_header">
+            android:orientation="vertical">
 
             <!-- 搜索框 -->
             <LinearLayout
@@ -99,7 +107,7 @@
         android:layout_height="match_parent"
         android:layout_above="@id/bottom_navigation"
         android:visibility="gone"
-        android:background="@color/surface_light">
+        android:background="@android:color/transparent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -113,14 +121,15 @@
                 android:layout_height="80dp"
                 android:layout_marginTop="20dp"
                 app:cardCornerRadius="40dp"
-                app:cardElevation="4dp">
+                app:cardElevation="4dp"
+                app:strokeWidth="2dp"
+                app:strokeColor="@color/primary">
                 <ImageView
+                    android:id="@+id/iv_user_avatar"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/ic_launcher_foreground"
-                    android:background="@color/design_default_color_primary"
-                    android:padding="10dp"
-                    app:tint="@android:color/white" />
+                    android:src="@mipmap/my_ic"
+                    android:scaleType="centerCrop" />
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
@@ -303,7 +312,7 @@
                     android:id="@+id/tv_app_version"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Version 1.0.5"
+                    android:text="Version 2.0.1"
                     android:textColor="@color/text_disabled"
                     android:textSize="12sp" />
 
@@ -419,6 +428,71 @@
                 android:clipToPadding="false"
                 android:paddingBottom="16dp" />
         </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 2.7 助手界面 -->
+    <LinearLayout
+        android:id="@+id/layout_ai"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_navigation"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AI 助手"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:layout_marginBottom="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="智能高级搜索"
+                    android:textStyle="bold"
+                    android:textSize="16sp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="基于 DeepSeek 大模型，支持语义理解搜索。例如：“找出去年的旅游照片”、“关于项目的文档”。"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="功能即将上线，敬请期待..."
+            android:layout_gravity="center"
+            android:layout_marginTop="40dp"
+            android:textColor="@color/text_tertiary"
+            android:visibility="gone"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_open_ai_chat"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="唤起 AI 助手对话"
+            app:icon="@android:drawable/ic_btn_speak_now"
+            app:cornerRadius="12dp"
+            android:layout_marginTop="20dp" />
 
     </LinearLayout>
 

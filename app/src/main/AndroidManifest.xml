@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CloudDisk">
         <activity
-            android:name=".MainActivity"
+            android:name=".SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.App.Starting">
             <intent-filter>
@@ -24,10 +24,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CloudDisk" />
+
         <activity android:name=".RegisterActivity" />
+        <activity android:name=".ChatActivity" />
         <activity
             android:name=".FileListActivity"
             android:configChanges="orientation|screenSize|screenLayout" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

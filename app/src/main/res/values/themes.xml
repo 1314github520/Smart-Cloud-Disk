@@ -4,15 +4,21 @@
         <item name="colorPrimary">@color/primary</item>
         <item name="android:statusBarColor">@color/primary</item>
         <item name="android:windowBackground">@color/background</item>
+        <!-- 全局应用可爱字体 -->
+        <item name="android:fontFamily">@font/cute_font</item>
     </style>
 
     <style name="Theme.CloudDisk" parent="Base.Theme.CloudDisk" />
 
-    <!-- 启动页主题 -->
+    <!-- 启动页主题：适配 Android 12+ -->
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/primary</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/my_ic_foreground</item>
-        <item name="windowSplashScreenAnimationDuration">200</item>
+        <!-- 1. 将背景设为白色（或透明，部分机型支持） -->
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+        <!-- 2. 关键：将图标设为透明，这样中间就不会出现那个烦人的小图标了 -->
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <!-- 3. 设置动画时间为 0，让它尽快结束 -->
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <!-- 4. 结束后跳转到你的主主题 -->
         <item name="postSplashScreenTheme">@style/Theme.CloudDisk</item>
     </style>
 </resources>

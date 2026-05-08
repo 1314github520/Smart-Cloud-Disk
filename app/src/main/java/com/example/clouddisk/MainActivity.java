@@ -28,19 +28,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // 激活开屏页
-        androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
-
         super.onCreate(savedInstanceState);
 
-        // 检查登录状态
-        SharedPreferences sp = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        if (sp.getBoolean("is_logged_in", false)) {
-            startActivity(new Intent(this, FileListActivity.class));
-            finish();
-            return;
-        }
-
+        // 检查登录状态的逻辑已经移到了 SplashActivity，这里保持简单布局即可
         setContentView(R.layout.activity_main);
 
         etUsername = findViewById(R.id.et_username);

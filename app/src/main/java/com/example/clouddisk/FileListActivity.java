@@ -68,6 +68,8 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.LazyHeaders;
 import com.github.chrisbanes.photoview.PhotoView;
+import androidx.core.content.FileProvider;
+import java.io.File;
 
 public class FileListActivity extends AppCompatActivity {
 
@@ -81,7 +83,7 @@ public class FileListActivity extends AppCompatActivity {
     private PlayerView videoPlayerView;
     private ImageView imgDisc;
     private PhotoView ivFullImage;
-    private View layoutMe, layoutTrans, layoutFilesContainer, playerView, layoutAudioControls;
+    private View layoutMe, layoutTrans, layoutFilesContainer, layoutAi, playerView, layoutAudioControls;
     private View layoutTransCategories, layoutTransListContainer;
     private View layoutVideoPlaylist;
     private RecyclerView rvVideoPlaylist;
@@ -126,6 +128,7 @@ public class FileListActivity extends AppCompatActivity {
         layoutFilesContainer = findViewById(R.id.layout_files_container);
         layoutMe = findViewById(R.id.layout_me);
         layoutTrans = findViewById(R.id.layout_trans);
+        layoutAi = findViewById(R.id.layout_ai);
         layoutTransCategories = findViewById(R.id.layout_trans_categories);
         layoutTransListContainer = findViewById(R.id.layout_trans_list_container);
         playerView = findViewById(R.id.player_full_screen);
@@ -317,12 +320,14 @@ public class FileListActivity extends AppCompatActivity {
 
         // 底部导航切换
         com.google.android.material.bottomnavigation.BottomNavigationView nav = findViewById(R.id.bottom_navigation);
+        nav.setItemIconTintList(null); // 关键：禁用系统涂色，显示图标原图颜色
         nav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_files) {
                 layoutFilesContainer.setVisibility(View.VISIBLE);
                 layoutMe.setVisibility(View.GONE);
                 layoutTrans.setVisibility(View.GONE);
+                layoutAi.setVisibility(View.GONE);
                 fabUpload.setVisibility(View.VISIBLE);
                 fabNewFolder.setVisibility(View.VISIBLE);
                 
@@ -334,6 +339,18 @@ public class FileListActivity extends AppCompatActivity {
                 layoutFilesContainer.setVisibility(View.GONE);
                 layoutMe.setVisibility(View.GONE);
                 layoutTrans.setVisibility(View.VISIBLE);
+                layoutAi.setVisibility(View.GONE);
+                fabUpload.setVisibility(View.GONE);
+                fabNewFolder.setVisibility(View.GONE);
+                fabShowPlayer.setVisibility(View.GONE);
+                fabDownload.setVisibility(View.GONE);
+                fabMove.setVisibility(View.GONE);
+                fabDelete.setVisibility(View.GONE);
+            } else if (id == R.id.nav_ai) {
+                layoutFilesContainer.setVisibility(View.GONE);
+                layoutMe.setVisibility(View.GONE);
+                layoutTrans.setVisibility(View.GONE);
+                layoutAi.setVisibility(View.VISIBLE);
                 fabUpload.setVisibility(View.GONE);
                 fabNewFolder.setVisibility(View.GONE);
                 fabShowPlayer.setVisibility(View.GONE);
@@ -344,6 +361,7 @@ public class FileListActivity extends AppCompatActivity {
                 layoutFilesContainer.setVisibility(View.GONE);
                 layoutMe.setVisibility(View.VISIBLE);
                 layoutTrans.setVisibility(View.GONE);
+                layoutAi.setVisibility(View.GONE);
                 fabUpload.setVisibility(View.GONE);
                 fabNewFolder.setVisibility(View.GONE);
                 fabShowPlayer.setVisibility(View.GONE);
@@ -407,6 +425,9 @@ public class FileListActivity extends AppCompatActivity {
         
         // 获取初始 2FA 状态
         toggle2FAStatusOnly(savedUsername, sp.getString("password", ""));
+
+        // 绑定 AI 助手按钮
+        findViewById(R.id.btn_open_ai_chat).setOnClickListener(v -> showAiChatDialog());
     }
 
     private void toggle2FAStatusOnly(String user, String pass) {
@@ -639,6 +660,9 @@ public class FileListActivity extends AppCompatActivity {
                 tvAudioTitle.setText(file.getName());
                 showPlayer(null);
                 playAudio(url);
+            } else if (ext.matches("pdf|doc|docx|xls|xlsx|ppt|pptx")) {
+                // 文档类型：在线预览通常需要转换，这里先实现“极速预览”逻辑：下载到临时目录并调用系统打开
+                previewDocument(file, url);
             } else {
                 Toast.makeText(this, "暂不支持预览该格式", Toast.LENGTH_SHORT).show();
             }
@@ -646,6 +670,148 @@ public class FileListActivity extends AppCompatActivity {
             e.printStackTrace();
             Toast.makeText(this, "预览失败", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void previewDocument(CloudFile file, String url) {
+        AlertDialog progressDialog = new AlertDialog.Builder(this)
+                .setTitle("正在准备预览")
+                .setMessage("正在下载文档: " + file.getName())
+                .setCancelable(false)
+                .show();
+
+        new Thread(() -> {
+            try {
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder()
+                        .url(url)
+                        .header("Authorization", Credentials.basic(user_dav, pass_dav))
+                        .build();
+
+                try (Response response = client.newCall(request).execute()) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        File cacheDir = getExternalCacheDir();
+                        File tempFile = new File(cacheDir, file.getName());
+                        
+                        try (BufferedSink sink = Okio.buffer(Okio.sink(tempFile))) {
+                            sink.writeAll(response.body().source());
+                        }
+
+                        runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            openLocalFile(tempFile);
+                        });
+                    } else {
+                        runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            Toast.makeText(this, "下载预览文件失败: " + response.code(), Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(this, "预览出错: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    private void openLocalFile(File file) {
+        try {
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
+            String extension = file.getName().substring(file.getName().lastIndexOf(".") + 1).toLowerCase();
+            String mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+            
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, mimeType);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            
+            startActivity(Intent.createChooser(intent, "打开文档"));
+        } catch (Exception e) {
+            Toast.makeText(this, "无法打开该文件，请安装相应的预览应用 (如 WPS 或 Office)", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showAiChatDialog() {
+        Intent intent = new Intent(this, ChatActivity.class);
+        startActivity(intent);
+    }
+
+    private void performAiAssistantRequest(String query) {
+        SharedPreferences sp = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        String username = sp.getString("username", "admin");
+
+        AlertDialog loading = new AlertDialog.Builder(this)
+                .setMessage("AI 正在分析文件并思考中...")
+                .setCancelable(false)
+                .show();
+
+        new Thread(() -> {
+            try {
+                // 1. 获取本地文件列表
+                java.util.List<FileIndex> allFiles = db.userDao().getAllFilesForAi(username);
+
+                // 2. 构造请求体
+                JSONObject json = new JSONObject();
+                json.put("username", username);
+                json.put("query", query);
+
+                org.json.JSONArray fileArray = new org.json.JSONArray();
+                for (FileIndex f : allFiles) {
+                    JSONObject fObj = new JSONObject();
+                    fObj.put("name", f.name);
+                    fObj.put("fullPath", f.fullPath);
+                    fObj.put("isDir", f.isDir);
+                    fileArray.put(fObj);
+                }
+                json.put("files", fileArray);
+
+                // 3. 发起请求
+                OkHttpClient client = new OkHttpClient.Builder()
+                        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                        .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                        .build();
+                RequestBody body = RequestBody.create(
+                        json.toString(), MediaType.parse("application/json; charset=utf-8"));
+
+                Request request = new Request.Builder()
+                        .url("http://47.97.50.135:8000/ai-assistant")
+                        .post(body)
+                        .build();
+
+                try (Response response = client.newCall(request).execute()) {
+                    String respStr = response.body().string();
+                    runOnUiThread(() -> {
+                        loading.dismiss();
+                        if (response.isSuccessful()) {
+                            try {
+                                JSONObject result = new JSONObject(respStr);
+                                showAiAnswer(result.getString("answer"), result.getInt("today_total"));
+                            } catch (Exception e) { e.printStackTrace(); }
+                        } else if (response.code() == 429) {
+                            Toast.makeText(this, "今日 50000 Token 额度已用完", Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(this, "助手连接失败 (错误码: " + response.code() + ")", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    loading.dismiss();
+                    Toast.makeText(this, "网络请求出错: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    private void showAiAnswer(String answer, int totalUsed) {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("助手回答")
+                .setMessage(answer + "\n\n(今日已消耗: " + totalUsed + "/50000 Token)")
+                .setPositiveButton("好的", null)
+                .show();
     }
 
     private void performSearch(String query) {
