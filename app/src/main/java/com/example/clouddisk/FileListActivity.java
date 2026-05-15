@@ -239,7 +239,7 @@ public class FileListActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                     .setTitle("确认注销账号？")
                     .setMessage("此操作将永久删除您的本地账号以及云端文件夹（" + savedUsername + "）内的所有数据，且不可恢复！")
-                    .setPositiveButton("确认注销", (dialog, which) -> cancelAccount(savedUsername))
+                    .setPositiveButton("确认注销", (dialog, which) -> cancelAccount(savedUsername, null))
                     .setNegativeButton("取消", null)
                     .show();
         });
@@ -1533,7 +1533,7 @@ public class FileListActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void cancelAccount(String username) {
+    private void cancelAccount(String username, String code) {
         SharedPreferences sp = getSharedPreferences("user_prefs", MODE_PRIVATE);
         String password = sp.getString("password", "");
 
@@ -1544,32 +1544,43 @@ public class FileListActivity extends AppCompatActivity {
                 JSONObject json = new JSONObject();
                 json.put("username", username);
                 json.put("password", password);
+                if (code != null) json.put("code", code);
 
                 RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
                 Request cancelReq = new Request.Builder()
-                        .url(Config.getBackendUrl() + "/cancel-account")
+                        .url(Config.getBackendUrl() + "/cancel_account")
                         .post(body)
                         .build();
 
                 try (Response resp = client.newCall(cancelReq).execute()) {
+                    String respStr = resp.body() != null ? resp.body().string() : "";
                     if (!resp.isSuccessful()) {
-                        runOnUiThread(() -> Toast.makeText(this, "云端注销失败", Toast.LENGTH_SHORT).show());
+                        String error = "FAIL_2FA".equals(respStr) ? "验证码错误" : ("云端注销失败: " + respStr);
+                        runOnUiThread(() -> Toast.makeText(this, error, Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+
+                    if ("NEED_2FA".equals(respStr)) {
+                        runOnUiThread(() -> show2FADialogForCancel(username));
                         return;
                     }
                 }
 
-                // 2. 删除云端 WebDAV 文件夹
-                Request davReq = new Request.Builder()
-                        .url(CD2_URL + encodePath(username))
-                        .delete()
-                        .header("Authorization", Credentials.basic(Config.WEBDAV_USER, Config.WEBDAV_PASS))
-                        .build();
+                // 2. 尝试删除云端 WebDAV 文件夹（即使失败也继续注销流程）
+                try {
+                    Request davReq = new Request.Builder()
+                            .url(CD2_URL + encodePath(username))
+                            .delete()
+                            .header("Authorization", Credentials.basic(Config.WEBDAV_USER, Config.WEBDAV_PASS))
+                            .build();
+                    client.newCall(davReq).execute().close(); 
+                } catch (Exception e) {
+                    e.printStackTrace(); // 文件夹删除失败不影响账号注销逻辑
+                }
                 
-                client.newCall(davReq).execute(); // 即使文件夹删失败（可能已空），也继续
-                
-                // 3. 这里的本地数据库删除不再需要（因为现在走云端同步），
-                // 但为了保险，清空本地相关缓存
+                // 3. 清空本地数据库相关缓存
                 db.userDao().clearFileIndex(username);
+                db.userDao().deleteUser(username); // 同时删除本地 User 表记录
                 
                 // 4. 清除登录状态并退出
                 runOnUiThread(() -> {
@@ -1583,6 +1594,33 @@ public class FileListActivity extends AppCompatActivity {
                 runOnUiThread(() -> Toast.makeText(this, "操作失败，请检查网络", Toast.LENGTH_SHORT).show());
             }
         }).start();
+    }
+
+    private void show2FADialogForCancel(String username) {
+        EditText etCode = new EditText(this);
+        etCode.setHint("请输入 6 位安全验证码");
+        etCode.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        etCode.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(6)});
+
+        int padding = (int) (24 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        container.setPadding(padding, padding / 2, padding, 0);
+        container.addView(etCode);
+
+        new AlertDialog.Builder(this)
+                .setTitle("安全验证")
+                .setMessage("注销账号属于敏感操作，请输入 6 位安全验证码。")
+                .setView(container)
+                .setPositiveButton("验证并注销", (dialog, which) -> {
+                    String code = etCode.getText().toString();
+                    if (code.length() == 6) {
+                        cancelAccount(username, code);
+                    } else {
+                        Toast.makeText(this, "请输入6位验证码", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private void uploadFile(Uri uri) {

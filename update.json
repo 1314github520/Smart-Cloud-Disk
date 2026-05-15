@@ -1,6 +1,6 @@
 {
-  "versionCode": 20,
-  "versionName": "2.0.1",
-  "updateMessage": "1. 全新的UI\n2. 可爱字体\n3. 集成AI助手\n4. 修复了若干已知性能问题",
-  "downloadUrl": "https://github.com/SmartZWZ/Smart-Cloud-Disk/releases/download/V2.0.1/CloudDisk_v2.0.1_release.apk"
+  "versionCode": 202,
+  "versionName": "2.0.2",
+  "updateMessage": "1. 优化了注销逻辑\n2. 更换APP图标\n3. 修复了注销后的界面跳转问题",
+  "downloadUrl": "https://github.com/SmartZWZ/Smart-Cloud-Disk/releases/download/V2.0.2/CloudDisk_v2.0.2_release.apk"
 }
